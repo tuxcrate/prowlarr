@@ -2,7 +2,7 @@
 set -eu
 
 : "${1:?Expected application version is required}"
-grep -Fx 'Branch=master' /opt/package_info
+grep -Ex 'Branch=(master|develop)' /opt/package_info
 grep -Fx 'UpdateMethod=docker' /opt/package_info
 test "$(id -u)" -ne 0
 test ! -w /opt/prowlarr
@@ -23,11 +23,13 @@ finish() {
 trap finish EXIT
 trap 'exit 1' INT TERM
 
+printf '<Config><BindAddress>127.0.0.1</BindAddress><Port>0</Port></Config>\n' > "$scratch/config.xml"
 /opt/prowlarr/Prowlarr -nobrowser "-data=$scratch" > "$scratch/server.log" 2>&1 &
 server_pid=$!
 for attempt in $(seq 1 120); do
-    if grep -q 'Now listening on:' "$scratch/server.log" \
-        && wget -q -O "$scratch/ping.json" http://127.0.0.1:9696/ping; then
+    port="$(sed -n 's/.*Now listening on: http:\/\/127\.0\.0\.1:\([0-9][0-9]*\).*/\1/p' "$scratch/server.log")"
+    if [ -n "$port" ] \
+        && wget -T 2 -q -O "$scratch/ping.json" "http://127.0.0.1:$port/ping"; then
         installed_version="$(sed -n 's/.*Bootstrap: Starting Prowlarr .* - Version \([^ ]*\).*/\1/p' "$scratch/server.log")"
         test "$installed_version" = "$1"
         grep -Eq '"status"[[:space:]]*:[[:space:]]*"OK"' "$scratch/ping.json"

@@ -6,9 +6,21 @@
       "matchDatasources": ["github-releases"],
       "matchPackageNames": ["Prowlarr/Prowlarr"],
       "extractVersion": "^v(?<version>[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)$",
-      "versioning": "loose",
-      "ignoreUnstable": true,
-      "respectLatest": true
+      "versioning": "loose"
+    },
+    {
+      "matchDatasources": ["github-releases"],
+      "matchPackageNames": ["Prowlarr/Prowlarr"],
+      "matchDepTypes": ["stable"],
+      "ignoreUnstable": true
+    },
+    {
+      "matchDatasources": ["github-releases"],
+      "matchPackageNames": ["Prowlarr/Prowlarr"],
+      "matchDepTypes": ["prerelease"],
+      "ignoreUnstable": false,
+      "respectLatest": false,
+      "prBodyNotes": ["The prerelease track follows upstream GitHub prereleases. Builds select Prowlarr.develop assets for prereleases and Prowlarr.master assets for stable releases, verify upstream checksums, and smoke-test both architectures before publication."]
     }
   ]
 }

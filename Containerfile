@@ -14,7 +14,8 @@ RUN set -eux; \
         --output /tmp/release.json \
         || { cat /tmp/release.json >&2; exit 1; }; \
     jq -e --arg tag "v${APP_VERSION}" \
-        '.tag_name == $tag and .draft == false and .prerelease == false' /tmp/release.json
+        '.tag_name == $tag and .draft == false and (.prerelease | type == "boolean")' /tmp/release.json; \
+    jq -r 'if .prerelease then "develop" else "master" end' /tmp/release.json > /tmp/branch
 
 FROM release AS download
 
@@ -27,9 +28,10 @@ RUN set -eux; \
         arm64) asset_arch=arm64 ;; \
         *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
     esac; \
-    jq -ce --arg name "Prowlarr.master.${APP_VERSION}.linux-musl-core-${asset_arch}.tar.gz" \
+    branch="$(cat /tmp/branch)"; \
+    jq -ce --arg name "Prowlarr.${branch}.${APP_VERSION}.linux-musl-core-${asset_arch}.tar.gz" \
         '[.assets[] | select(.name == $name)] \
-        | if length == 1 then .[0] else error("expected one matching stable Prowlarr asset") end' \
+        | if length == 1 then .[0] else error("expected one matching Prowlarr channel asset") end' \
         /tmp/release.json > /tmp/asset.json; \
     checksum="$(jq -er '.digest | select(test("^sha256:[0-9a-f]{64}$"))' /tmp/asset.json)"; \
     download_url="$(jq -er '.browser_download_url' /tmp/asset.json)"; \
@@ -42,7 +44,7 @@ RUN set -eux; \
     printf 'Prowlarr is distributed under GPL-3.0. See /opt/prowlarr/LICENSE.\nUpstream release: https://github.com/Prowlarr/Prowlarr/releases/tag/v%s\nCorresponding source: https://github.com/Prowlarr/Prowlarr/tree/v%s\nSource archive: https://github.com/Prowlarr/Prowlarr/archive/refs/tags/v%s.tar.gz\n' \
         "$APP_VERSION" "$APP_VERSION" "$APP_VERSION" > /notices/SOURCE; \
     rm -rf /prowlarr/Prowlarr.Update; \
-    printf 'UpdateMethod=docker\nBranch=master\nPackageAuthor=[Tuxcrate](https://tuxcrate.com)\n' > /package_info
+    printf 'UpdateMethod=docker\nBranch=%s\nPackageAuthor=[Tuxcrate](https://tuxcrate.com)\n' "$branch" > /package_info
 
 FROM ${BASE_IMAGE}
 
