@@ -18,9 +18,10 @@
       "matchDatasources": ["github-releases"],
       "matchPackageNames": ["Prowlarr/Prowlarr"],
       "matchDepTypes": ["prerelease"],
+      "overrideDatasource": "custom.github-prereleases",
       "ignoreUnstable": false,
       "respectLatest": false,
-      "prBodyNotes": ["The prerelease track follows upstream GitHub prereleases. Builds select Prowlarr.develop assets for prereleases and Prowlarr.master assets for stable releases, verify upstream checksums, and smoke-test both architectures before publication."]
+      "prBodyNotes": ["The prerelease track only follows releases marked as prereleases by GitHub. Builds select branch-specific assets using upstream release metadata, verify upstream checksums, and smoke-test both architectures before publication."]
     }
   ]
 }
