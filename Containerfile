@@ -5,14 +5,19 @@ SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 
 ARG APP_VERSION
 
-RUN set -eux; \
+RUN --mount=type=secret,id=github_release_json \
+    set -eux; \
     : "${APP_VERSION:?APP_VERSION must be set}"; \
     apk add --no-cache ca-certificates curl jq; \
-    curl --fail-with-body --location --retry 3 --retry-all-errors --retry-max-time 180 \
-        --connect-timeout 15 --max-time 60 \
-        "https://api.github.com/repos/Prowlarr/Prowlarr/releases/tags/v${APP_VERSION}" \
-        --output /tmp/release.json \
-        || { cat /tmp/release.json >&2; exit 1; }; \
+    if [ -s /run/secrets/github_release_json ]; then \
+        cp /run/secrets/github_release_json /tmp/release.json; \
+    else \
+        curl --fail-with-body --location --retry 3 --retry-all-errors --retry-max-time 180 \
+            --connect-timeout 15 --max-time 60 \
+            "https://api.github.com/repos/Prowlarr/Prowlarr/releases/tags/v${APP_VERSION}" \
+            --output /tmp/release.json \
+            || { cat /tmp/release.json >&2; exit 1; }; \
+    fi; \
     jq -e --arg tag "v${APP_VERSION}" \
         '.tag_name == $tag and .draft == false and (.prerelease | type == "boolean")' /tmp/release.json; \
     jq -r 'if .prerelease then "develop" else "master" end' /tmp/release.json > /tmp/branch
