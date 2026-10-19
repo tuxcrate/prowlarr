@@ -5,10 +5,15 @@ SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 
 ARG APP_VERSION
 
-RUN set -eux; \
+RUN --mount=type=secret,id=github_token \
+    set -eu; \
     : "${APP_VERSION:?APP_VERSION must be set}"; \
+    github_auth=""; \
+    if [ -s /run/secrets/github_token ]; then \
+        github_auth="Authorization: Bearer $(cat /run/secrets/github_token)"; \
+    fi; \
     apk add --no-cache ca-certificates curl jq; \
-    curl --fail-with-body --location --retry 3 --retry-all-errors --retry-max-time 180 \
+    curl --header "$github_auth" --fail-with-body --location --retry 3 --retry-all-errors --retry-max-time 180 \
         --connect-timeout 15 --max-time 60 \
         "https://api.github.com/repos/Prowlarr/Prowlarr/releases/tags/v${APP_VERSION}" \
         --output /tmp/release.json \
