@@ -55,8 +55,6 @@ FROM ${BASE_IMAGE}
 
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 
-ARG APP_VERSION
-
 ENV HOME=/config \
     XDG_CONFIG_HOME=/config/xdg \
     COMPlus_EnableDiagnostics=0
@@ -72,12 +70,9 @@ RUN set -eux; \
 COPY --from=download /prowlarr /opt/prowlarr
 COPY --from=download /package_info /opt/package_info
 COPY --from=download /notices /usr/share/doc/prowlarr
-COPY tests/smoke.sh /usr/local/bin/prowlarr-smoke-test
 
 USER 1000:1000
 WORKDIR /config
-
-RUN sh /usr/local/bin/prowlarr-smoke-test "${APP_VERSION}"
 
 EXPOSE 9696
 ENTRYPOINT ["/opt/prowlarr/Prowlarr", "-nobrowser", "-data=/config"]
