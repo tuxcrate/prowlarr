@@ -63,8 +63,8 @@ ENV HOME=/config \
 RUN set -eux; \
     apk upgrade --no-cache; \
     apk add --no-cache ca-certificates icu-data-full icu-libs libgcc libstdc++ libssl3 sqlite-libs tzdata zlib; \
-    addgroup -g 1000 prowlarr; \
-    adduser -D -u 1000 -G prowlarr -h /config -s /sbin/nologin prowlarr; \
+    addgroup -g 1000 tuxcrate; \
+    adduser -D -u 1000 -G tuxcrate -h /config -s /sbin/nologin tuxcrate; \
     mkdir -p /config; \
     chown 1000:1000 /config
 
