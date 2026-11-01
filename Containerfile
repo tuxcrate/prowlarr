@@ -25,6 +25,7 @@ RUN --mount=type=secret,id=github_token \
 FROM release AS download
 
 ARG APP_VERSION
+ARG PACKAGE_VERSION
 ARG TARGETARCH
 
 RUN set -eux; \
@@ -46,10 +47,10 @@ RUN set -eux; \
     mkdir /prowlarr /notices; \
     tar -xzf /tmp/prowlarr.tar.gz --directory /prowlarr --strip-components=1; \
     test -s /prowlarr/LICENSE; \
-    printf 'Prowlarr is distributed under GPL-3.0. See /opt/prowlarr/LICENSE.\nUpstream release: https://github.com/Prowlarr/Prowlarr/releases/tag/v%s\nCorresponding source: https://github.com/Prowlarr/Prowlarr/tree/v%s\nSource archive: https://github.com/Prowlarr/Prowlarr/archive/refs/tags/v%s.tar.gz\n' \
+    printf 'Prowlarr is distributed under GPL-3.0. See /opt/prowlarr/bin/LICENSE.\nUpstream release: https://github.com/Prowlarr/Prowlarr/releases/tag/v%s\nCorresponding source: https://github.com/Prowlarr/Prowlarr/tree/v%s\nSource archive: https://github.com/Prowlarr/Prowlarr/archive/refs/tags/v%s.tar.gz\n' \
         "$APP_VERSION" "$APP_VERSION" "$APP_VERSION" > /notices/SOURCE; \
     rm -rf /prowlarr/Prowlarr.Update; \
-    printf 'UpdateMethod=docker\nBranch=%s\nPackageAuthor=[Tuxcrate](https://tuxcrate.com)\n' "$branch" > /package_info
+    printf 'UpdateMethod=docker\nBranch=%s\nPackageVersion=%s\nPackageAuthor=[Tuxcrate](https://tuxcrate.com)\n' "$branch" "${PACKAGE_VERSION:-${APP_VERSION}-local}" > /package_info
 
 FROM ${BASE_IMAGE}
 
@@ -67,12 +68,13 @@ RUN set -eux; \
     mkdir -p /config; \
     chown 1000:1000 /config
 
-COPY --from=download /prowlarr /opt/prowlarr
-COPY --from=download /package_info /opt/package_info
+# Prowlarr only reads ../package_info when its application directory is named bin.
+COPY --from=download /prowlarr /opt/prowlarr/bin
+COPY --from=download /package_info /opt/prowlarr/package_info
 COPY --from=download /notices /usr/share/doc/prowlarr
 
 USER 1000:1000
 WORKDIR /config
 
 EXPOSE 9696
-ENTRYPOINT ["/opt/prowlarr/Prowlarr", "-nobrowser", "-data=/config"]
+ENTRYPOINT ["/opt/prowlarr/bin/Prowlarr", "-nobrowser", "-data=/config"]

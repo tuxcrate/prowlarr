@@ -4,6 +4,7 @@ set -euo pipefail
 image=${1:?A locally loaded image is required}
 version=${2:?The expected application version is required}
 platform=${3:?The image platform is required}
+package_version=${PACKAGE_VERSION:-${version}-local}
 container=
 phase='starting the container with its default entrypoint and user'
 cleanup() {
@@ -28,14 +29,14 @@ container=$(docker create --pull=never --platform "$platform" --network none \
 docker start "$container" > /dev/null
 phase='checking runtime prerequisites as the configured user'
 docker exec "$container" sh -eu -c '
-    grep -Ex "Branch=(master|develop)" /opt/package_info
-    grep -Fx "UpdateMethod=docker" /opt/package_info
+    grep -Ex "Branch=(master|develop)" /opt/prowlarr/package_info
+    grep -Fx "UpdateMethod=docker" /opt/prowlarr/package_info
     test "$(id -u)" -ne 0
     test ! -w /opt/prowlarr
     test -w /config
-    test -s /opt/prowlarr/LICENSE
+    test -s /opt/prowlarr/bin/LICENSE
     test -s /usr/share/doc/prowlarr/SOURCE
-    test ! -e /opt/prowlarr/Prowlarr.Update
+    test ! -e /opt/prowlarr/bin/Prowlarr.Update
     test ! -e /usr/local/bin/prowlarr-smoke-test
 '
 
@@ -67,6 +68,15 @@ if [[ $installed_version != "$version" ]]; then
     printf 'Expected Prowlarr %s, got %s.\n' "$version" "$installed_version" >&2
     exit 1
 fi
+phase='checking package version and the Tuxcrate author link in the status API'
+system_status=$(docker exec "$container" sh -eu -c '
+    api_key=$(sed -n "s:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p" /config/config.xml)
+    test -n "$api_key"
+    wget -T 5 -q -O - --header "X-Api-Key: $api_key" http://127.0.0.1:9696/api/v1/system/status
+')
+grep -Eq '"packageVersion"[[:space:]]*:[[:space:]]*"'"${package_version//./\\.}"'"' <<< "$system_status"
+grep -Eq '"packageAuthor"[[:space:]]*:[[:space:]]*"\[Tuxcrate\]\(https://tuxcrate\.com\)"' <<< "$system_status"
+
 phase='checking graceful shutdown'
 docker stop --time 30 "$container" > /dev/null
 exit_code=$(docker wait "$container")
