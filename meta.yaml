@@ -16,7 +16,7 @@ tracks:
     upstream:
       datasource: github-releases
       depName: Prowlarr/Prowlarr
-      version: "3.0.0.5737"
+      version: "3.0.1.5752"
     prerelease: true
     tags:
       - "${version}-prerelease"
