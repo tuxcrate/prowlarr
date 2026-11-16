@@ -4,7 +4,7 @@ tracks:
     upstream:
       datasource: github-releases
       depName: Prowlarr/Prowlarr
-      version: "2.7.0.5723"
+      version: "3.0.2.5780"
     tags:
       - "${version}"
       - "${major}"
